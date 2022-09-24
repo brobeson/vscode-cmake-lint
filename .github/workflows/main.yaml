@@ -1,0 +1,44 @@
+name: Build and Test
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+concurrency:
+  group:
+    "${{github.workflow}} @ ${{github.pull_request.head.label || github.head_ref
+    || github.ref}}"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install Packages and Tools
+        run: |
+          npm install
+          npm install --global vsce
+      - name: Check Code Format
+        run: npx prettier --check .
+      - if: runner.os == 'Linux'
+        name: Run Tests on Linux
+        run: xvfb-run --auto-servernum npm test
+      - if: runner.os != 'Linux'
+        name: Run Tests on Windows & MacOS
+        run: npm test
+      - if: runner.os == 'Linux'
+        name: Create a VSIX Package
+        run: vsce package
+      - if: runner.os == 'Linux'
+        name: Verify the Package
+        run: ./src/test/package_test.sh

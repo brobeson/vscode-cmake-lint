@@ -1,0 +1,6 @@
+out
+docs/_site
+dist
+node_modules
+.vscode-test/
+*.vsix

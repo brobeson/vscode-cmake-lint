@@ -1,0 +1,13 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+p {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+td {
+  border-bottom: none;
+}
