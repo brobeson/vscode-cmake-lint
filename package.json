@@ -28,7 +28,9 @@
     "cmake-lint"
   ],
   "activationEvents": [
-    "onLanguage:cmake"
+    "onLanguage:cmake",
+    "workspaceContains:**/CMakeLists.txt",
+    "workspaceContains:**/*.cmake"
   ],
   "main": "./out/extension.js",
   "extensionKind": [
@@ -37,9 +39,14 @@
   "contributes": {
     "commands": [
       {
-        "command": "cmake-lint.scanActiveFile",
+        "command": "cmakeLint.scanAllFiles",
+        "title": "Scan all CMake Files",
+        "category": "CMake Lint"
+      },
+      {
+        "command": "cmakeLint.scanActiveFile",
         "title": "Scan the Current File",
-        "category": "cmake-lint"
+        "category": "CMake Lint"
       }
     ]
   },

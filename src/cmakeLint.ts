@@ -1,11 +1,8 @@
 import { spawn } from "child_process";
 import * as vscode from "vscode";
 
-export async function lintDocument(file: vscode.TextDocument) {
-  if (file.languageId !== "cmake" || file.uri.scheme !== "file") {
-    return [];
-  }
-  const output = await runCmakeLint(file.uri.fsPath);
+export async function lintDocument(file: string) {
+  const output = await runCmakeLint(file);
   return createDiagnosticsFromOutput(output);
 }
 
