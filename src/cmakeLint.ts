@@ -14,8 +14,10 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  async function cmakeLintActiveDocument() {
-    if (
+  async function cmakeLintOnSave(file: vscode.TextDocument) {
+    if (isCmakeLintConfigFile(file.uri.fsPath)) {
+      cmakeLintAllFiles();
+    } else if (
       vscode.window.activeTextEditor !== undefined &&
       vscode.window.activeTextEditor.document.languageId === "cmake"
     ) {
@@ -30,18 +32,14 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("cmakeLint.scanAllFiles", cmakeLintAllFiles)
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "cmakeLint.scanActiveFile",
-      cmakeLintActiveDocument
-    )
+    vscode.commands.registerCommand("cmakeLint.scanActiveFile", cmakeLintOnSave)
   );
   context.subscriptions.push(
-    vscode.workspace.onDidOpenTextDocument(cmakeLintActiveDocument)
+    vscode.workspace.onDidOpenTextDocument(cmakeLintOnSave)
   );
   context.subscriptions.push(
-    vscode.workspace.onDidSaveTextDocument(cmakeLintActiveDocument)
+    vscode.workspace.onDidSaveTextDocument(cmakeLintOnSave)
   );
-
   cmakeLintAllFiles();
 }
 
@@ -91,4 +89,17 @@ function createDiagnosticsFromOutput(
     }
   }
   return diagnostics;
+}
+
+function isCmakeLintConfigFile(filepath: string): boolean {
+  // No need for options with the the leading '.' - The function checks
+  // string.endswith(), so these options cover both cases.
+  const defaultFiles = [
+    "cmake-format.yaml",
+    "cmake-format.json",
+    "cmake-format.py",
+  ];
+  return defaultFiles.some((configFile, index, files) => {
+    return filepath.endsWith(configFile);
+  });
 }
