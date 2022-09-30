@@ -2,7 +2,7 @@
   "name": "vscode-cmake-lint",
   "displayName": "CMake-Lint",
   "description": "Scan CMake scripts for lint",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "publisher": "brobeson",
   "author": {
     "name": "brobeson",
