@@ -45,19 +45,31 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
+type CommandResponse = {
+  exitCode: number;
+  output: string;
+};
+
 async function lintDocument(file: string) {
-  const output = await runCmakeLint(file);
-  return createDiagnosticsFromOutput(output);
+  const response = await runCmakeLint(file);
+  if (response.exitCode && response.output) {
+    return createDiagnosticsFromOutput(response.output);
+  }
+  return [];
 }
 
-async function runCmakeLint(file: string): Promise<string> {
+async function runCmakeLint(file: string): Promise<CommandResponse> {
   return new Promise((resolve, reject) => {
     const process = spawn("cmake-lint", ["--suppress-decorations", file]);
     if (process.pid) {
       let output = "";
       process.stderr.on("data", (data) => { output += data; }); // prettier-ignore
       process.stdout.on("data", (data) => { output += data; }); // prettier-ignore
-      process.on("close", (code) => resolve(output.trim()));
+      process.on("close", (exitCode) => {
+        exitCode = exitCode ?? 0;
+        output = output.trim();
+        resolve({ exitCode, output });
+      });
       process.on("error", (error: Error) => reject(error));
     }
   });
@@ -66,11 +78,8 @@ async function runCmakeLint(file: string): Promise<string> {
 function createDiagnosticsFromOutput(
   processOutput: string
 ): vscode.Diagnostic[] {
-  if (processOutput.length === 0) {
-    return [];
-  }
   const lines = processOutput.split("\n");
-  let diagnostics: vscode.Diagnostic[] = [];
+  const diagnostics: vscode.Diagnostic[] = [];
   for (const line of lines) {
     let matches = line.match(/^[^:]+:(\d+).*:\s*\[([^\]]+)\]\s+(.*)$/);
     if (matches === null) {
@@ -81,7 +90,7 @@ function createDiagnosticsFromOutput(
       const d = new vscode.Diagnostic(
         new vscode.Range(+matches[1] - 1, 0, +matches[1] - 1, 1000),
         matches[3],
-        vscode.DiagnosticSeverity.Error
+        vscode.DiagnosticSeverity.Warning
       );
       d.code = matches[2];
       d.source = "cmake-lint";
