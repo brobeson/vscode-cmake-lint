@@ -8,7 +8,6 @@ actual_files=$(unzip -lqq ${vsix_file} | sed 's/^.*   //' | sort --dictionary-or
 expected_files="[Content_Types].xml
 extension/CHANGELOG.md
 extension/LICENSE.txt
-extension/out/extension.js
 extension/out/cmakeLint.js
 extension/package.json
 extension/README.md
