@@ -46,18 +46,35 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 async function lintDocument(file: string) {
-  const output = await runCmakeLint(file);
-  return createDiagnosticsFromOutput(output);
+  // runCmakeLint(file)
+  //   .then((output) => {
+  //     return createDiagnosticsFromOutput(output);
+  //   })
+  //   .catch((error) => vscode.window.showErrorMessage("Caught the error"));
+  try {
+    const output = await runCmakeLint(file);
+    return createDiagnosticsFromOutput(output);
+  } catch (error: any) {
+    vscode.window.showErrorMessage("Caught the error");
+  }
 }
 
-async function runCmakeLint(file: string): Promise<string> {
+async function runCmakeLint(file: string): Promise<{code: number, output: string}> {
+  let commandArguments = ["--suppress-decorations"];
+  const configFiles = getConfigurationFiles();
+  if (configFiles.length > 0) {
+    commandArguments.push("-c");
+    commandArguments = commandArguments.concat(configFiles);
+    commandArguments.push("--");
+    commandArguments.push(file);
+  }
   return new Promise((resolve, reject) => {
-    const process = spawn("cmake-lint", ["--suppress-decorations", file]);
+    const process = spawn("cmake-lint", commandArguments);
     if (process.pid) {
       let output = "";
       process.stderr.on("data", (data) => { output += data; }); // prettier-ignore
       process.stdout.on("data", (data) => { output += data; }); // prettier-ignore
-      process.on("close", (code) => resolve(output.trim()));
+      process.on("close", (code:number) => resolve({code, output.trim()}));
       process.on("error", (error: Error) => reject(error));
     }
   });
@@ -72,6 +89,10 @@ function createDiagnosticsFromOutput(
   const lines = processOutput.split("\n");
   let diagnostics: vscode.Diagnostic[] = [];
   for (const line of lines) {
+    if (line.startsWith("CRITICAL Desired config file does not exist:")) {
+      vscode.window.showErrorMessage(line);
+      return [];
+    }
     let matches = line.match(/^[^:]+:(\d+).*:\s*\[([^\]]+)\]\s+(.*)$/);
     if (matches === null) {
       vscode.window.showErrorMessage(
@@ -93,7 +114,7 @@ function createDiagnosticsFromOutput(
 
 function isCmakeLintConfigFile(filepath: string): boolean {
   // No need for options with the the leading '.' - The function checks
-  // string.endswith(), so these options cover both cases.
+  // string.endsWith(), so these options cover both cases.
   const defaultFiles = [
     "cmake-format.yaml",
     "cmake-format.json",
@@ -102,4 +123,12 @@ function isCmakeLintConfigFile(filepath: string): boolean {
   return defaultFiles.some((configFile, index, files) => {
     return filepath.endsWith(configFile);
   });
+}
+
+function getConfigurationFiles(): string[] {
+  const config = vscode.workspace.getConfiguration("cmakeLint");
+  if (config !== null && config !== undefined && config.has("configFiles")) {
+    return config.get("configFiles") as string[];
+  }
+  return [];
 }

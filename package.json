@@ -37,6 +37,14 @@
     "workspace"
   ],
   "contributes": {
+    "configuration": {
+      "properties": {
+        "cmakeLint.configFile": {
+          "type": "array",
+          "description": "A list of CMake Lint configuration files to pass to the 'cmake-lint' command."
+        }
+      }
+    },
     "commands": [
       {
         "command": "cmakeLint.scanAllFiles",
